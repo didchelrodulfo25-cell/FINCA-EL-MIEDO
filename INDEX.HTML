@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1b4332" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Finca El Miedo" />
+  <title>Finca El Miedo - Gestión Ganadera</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-main: #eff2ea;
+      --card-bg: #f7f9f4;
+      --border-soft: #dce2d5;
+      --green-dark: #1b4332;
+      --green-accent: #2d6a4f;
+      --gold: #d4af37;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: #1c251e;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: 90px;
+    }
+    .card-finca {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .gold-gradient {
+      background: linear-gradient(135deg, #f3d778 0%, #c59b27 50%, #8f6b10 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .shield-box {
+      background: radial-gradient(circle at center, #2b2417 0%, #0d0d0d 100%);
+      border: 3px solid #d4af37;
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.35);
+    }
+    .nav-active {
+      background-color: #d8e4d4;
+      color: #1b4332;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= PANTALLA DE LOGIN ================= -->
+  <div id="loginScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6" style="background: radial-gradient(circle at top, #1f241d 0%, #0c0f0a 100%);">
+    <div class="w-full max-w-sm bg-[#151914] border border-[#3a3520] rounded-3xl p-6 shadow-2xl text-center">
+      
+      <!-- Logo / Escudo Finca El Miedo -->
+      <div class="relative mx-auto w-36 h-36 rounded-2xl shield-box flex items-center justify-center overflow-hidden mb-4">
+        <img id="loginLogoImg" src="" alt="Logo Finca El Miedo" class="w-full h-full object-cover hidden" />
+        <div id="loginDefaultShield" class="flex flex-col items-center justify-center p-2">
+          <span class="text-4xl">👑</span>
+          <span class="text-5xl -mt-2">🐂</span>
+          <span class="text-[10px] font-extrabold tracking-widest text-[#f3d778] mt-1 border-t border-b border-[#c59b27] px-2">FINCA EL MIEDO</span>
+        </div>
+      </div>
+
+      <h1 class="text-2xl font-extrabold tracking-wider gold-gradient uppercase">Finca El Miedo</h1>
+      <p class="text-xs text-gray-400 mt-1 mb-5">Sistema de Gestión Ganadera Compartido</p>
+
+      <form onsubmit="handleLogin(event)" class="space-y-3 text-left">
+        <div>
+          <label class="text-xs text-gray-300 font-semibold">Usuario o N° de Credencial</label>
+          <input id="loginUser" type="text" required placeholder="Ej: admin o 1001" class="w-full mt-1 px-4 py-3 rounded-xl bg-[#222720] border border-gray-700 text-white text-sm focus:outline-none focus:border-[#d4af37]" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 font-semibold">Contraseña o N° de Credencial</label>
+          <input id="loginPass" type="password" required placeholder="••••••••" class="w-full mt-1 px-4 py-3 rounded-xl bg-[#222720] border border-gray-700 text-white text-sm focus:outline-none focus:border-[#d4af37]" />
+        </div>
+        <div id="loginError" class="text-xs text-red-400 hidden text-center pt-1">Credenciales incorrectas. Verifica tu usuario o credencial.</div>
+        <button type="submit" class="w-full py-3.5 mt-2 rounded-xl font-bold text-sm text-black shadow-lg" style="background: linear-gradient(135deg, #f3d778 0%, #c59b27 100%);">
+          INGRESAR A LA FINCA
+        </button>
+      </form>
+
+      <div class="mt-5 pt-4 border-t border-gray-800 text-[11px] text-gray-400 space-y-1">
+        <p><strong class="text-gray-200">Administrador (Tú y tu mamá):</strong> Usuario: <code class="text-[#f3d778]">admin</code> | Clave: <code class="text-[#f3d778]">finca2026</code></p>
+        <p><strong class="text-gray-200">Empleados:</strong> Ingresan con su <code class="text-[#f3d778]">N° de Credencial</code> en ambos campos.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= APLICACIÓN PRINCIPAL ================= -->
+  <div id="appContainer" class="max-w-md mx-auto min-h-screen hidden">
+    
+    <!-- ENCABEZADO -->
+    <header class="px-4 pt-5 pb-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div onclick="openFarmModal()" class="w-11 h-11 rounded-xl bg-[#1b4332] border border-[#d4af37] flex items-center justify-center overflow-hidden cursor-pointer shadow">
+          <img id="headerLogoImg" src="" class="w-full h-full object-cover hidden" />
+          <span id="headerDefaultIcon" class="text-xl">🛡️</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-[#1c251e] leading-none">Finca El Miedo</h1>
+          <p id="headerSub" class="text-xs text-gray-600 uppercase tracking-wide mt-1">ADMIN · EN LÍNEA</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-end gap-1">
+        <span id="currentDateDisplay" class="text-xs text-gray-500 font-medium"></span>
+        <div class="flex items-center gap-1.5">
+          <button id="btnFarmConfig" onclick="openFarmModal()" class="text-[11px] bg-[#e2e8dd] hover:bg-[#d3dccb] text-[#1b4332] font-semibold px-2.5 py-1 rounded-lg">
+            🏡 Datos Finca
+          </button>
+          <button id="btnCloudConfig" onclick="openCloudModal()" class="text-[11px] bg-[#e2e8dd] hover:bg-[#d3dccb] text-[#1b4332] font-semibold px-2.5 py-1 rounded-lg">
+            ☁️ <span id="cloudStatusDot">Local</span>
+          </button>
+          <button onclick="logout()" class="text-[11px] bg-red-100 text-red-700 font-semibold px-2 py-1 rounded-lg">
+            Salir
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENIDO DE PESTAÑAS -->
+    <main class="px-4 space-y-5">
+
+      <!-- 1. SECCIÓN RESUMEN (Idéntico a Imagen 1) -->
+      <section id="tab-resumen" class="space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Tarjeta Bovinos -->
+          <div onclick="switchTab('animales')" class="card-finca p-4 cursor-pointer">
+            <p class="text-xs text-gray-600">Bovinos</p>
+            <p id="resBovinosCount" class="text-3xl font-bold mt-1">0</p>
+            <p id="resBovinosSub" class="text-xs text-gray-500 mt-1">0 lactando · 0 preñadas</p>
+          </div>
+          <!-- Tarjeta Leche -->
+          <div onclick="switchTab('produccion')" class="card-finca p-4 cursor-pointer">
+            <p class="text-xs text-gray-600">Leche</p>
+            <p id="resLecheCount" class="text-3xl font-bold mt-1">— <span class="text-base font-normal">L</span></p>
+            <p id="resLecheSub" class="text-xs text-gray-500 mt-1">Sin ordeños recientes</p>
+          </div>
+          <!-- Tarjeta Sanidad -->
+          <div onclick="switchTab('sanidad')" class="card-finca p-4 cursor-pointer">
+            <p class="text-xs text-gray-600">Sanidad pendiente</p>
+            <p id="resSanidadCount" class="text-3xl font-bold mt-1">0</p>
+            <p id="resSanidadSub" class="text-xs text-gray-500 mt-1">Todo al día</p>
+          </div>
+          <!-- Tarjeta Pagos de personal (Solo Admin) -->
+          <div id="cardResumenPersonal" onclick="switchTab('personal')" class="card-finca p-4 cursor-pointer">
+            <p class="text-xs text-gray-600">Pagos de personal</p>
+            <p class="text-3xl font-bold mt-1"><span id="resPagosPend">0</span> <span class="text-sm font-semibold text-gray-600">por pagar</span></p>
+            <p id="resNominaMes" class="text-xs text-gray-500 mt-1">Nómina US$ 0 al mes</p>
+          </div>
+          <!-- Tarjeta Balance del mes (Solo Admin) -->
+          <div id="cardResumenFinanzas" onclick="switchTab('finanzas')" class="card-finca p-4 cursor-pointer">
+            <p class="text-xs text-gray-600">Balance del mes</p>
+            <p id="resBalanceMes" class="text-2xl font-bold text-[#1b4332] mt-1">US$ 0</p>
+            <p id="resBalanceSub" class="text-xs text-gray-500 mt-1">US$ 0 - US$ 0</p>
+          </div>
+          <!-- Tarjeta Aves y peces -->
+          <div onclick="switchTab('animales')" class="card-finca p-4 cursor-pointer">
+            <p class="text-xs text-gray-600">Aves y peces</p>
+            <p id="resAvesPecesCount" class="text-3xl font-bold mt-1">0</p>
+            <p id="resAvesPecesSub" class="text-xs text-gray-500 mt-1">0 aves · 0 peces</p>
+          </div>
+        </div>
+
+        <!-- POR ESPECIE -->
+        <div>
+          <h2 class="text-xs font-semibold tracking-wider text-gray-600 uppercase mb-2">POR ESPECIE</h2>
+          <div class="card-finca divide-y divide-[#dce2d5] overflow-hidden">
+            <div onclick="openSpecies('Bovinos')" class="p-3.5 flex justify-between items-center cursor-pointer hover:bg-black/5">
+              <span class="font-semibold text-sm">Bovinos</span>
+              <span id="specBovinos" class="text-sm text-gray-600 font-mono">0 cabezas</span>
+            </div>
+            <div onclick="openSpecies('Porcinos')" class="p-3.5 flex justify-between items-center cursor-pointer hover:bg-black/5">
+              <span class="font-semibold text-sm">Porcinos</span>
+              <span id="specPorcinos" class="text-sm text-gray-600 font-mono">0 cabezas</span>
+            </div>
+            <div onclick="openSpecies('Caprinos')" class="p-3.5 flex justify-between items-center cursor-pointer hover:bg-black/5">
+              <span class="font-semibold text-sm">Caprinos</span>
+              <span id="specCaprinos" class="text-sm text-gray-600 font-mono">0 cabezas</span>
+            </div>
+            <div onclick="openSpecies('Equinos')" class="p-3.5 flex justify-between items-center cursor-pointer hover:bg-black/5">
+              <span class="font-semibold text-sm">Equinos</span>
+              <span id="specEquinos" class="text-sm text-gray-600 font-mono">0 cabezas</span>
+            </div>
+            <div onclick="openSpecies('Avícolas')" class="p-3.5 flex justify-between items-center cursor-pointer hover:bg-black/5">
+              <span class="font-semibold text-sm">Avícolas</span>
+              <span id="specAvicolas" class="text-sm text-gray-600 font-mono">0 lotes · 0 aves</span>
+            </div>
+            <div onclick="openSpecies('Piscícolas')" class="p-3.5 flex justify-between items-center cursor-pointer hover:bg-black/5">
+              <span class="font-semibold text-sm">Piscícolas</span>
+              <span id="specPiscicolas" class="text-sm text-gray-600 font-mono">0 lotes · 0 peces</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRÓXIMAS TAREAS DE SANIDAD -->
+        <div>
+          <h2 class="text-xs font-semibold tracking-wider text-gray-600 uppercase mb-2">PRÓXIMAS TAREAS DE SANIDAD</h2>
+          <div id="resSanidadList" class="card-finca p-4 text-xs text-gray-500 space-y-2">
+            No hay tareas de sanidad pendientes.
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. SECCIÓN ANIMALES -->
+      <section id="tab-animales" class="space-y-4 hidden">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-bold">Inventario de Animales</h2>
+          <button onclick="openAnimalModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow">
+            + Registrar Animal / Lote
+          </button>
+        </div>
+
+        <!-- Filtro de especie -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1 text-xs">
+          <button onclick="filterAnimals('Todos')" class="px-3 py-1.5 rounded-lg bg-[#1b4332] text-white font-semibold" id="flt-Todos">Todos</button>
+          <button onclick="filterAnimals('Bovinos')" class="px-3 py-1.5 rounded-lg bg-white border text-gray-700" id="flt-Bovinos">Bovinos</button>
+          <button onclick="filterAnimals('Porcinos')" class="px-3 py-1.5 rounded-lg bg-white border text-gray-700" id="flt-Porcinos">Porcinos</button>
+          <button onclick="filterAnimals('Caprinos')" class="px-3 py-1.5 rounded-lg bg-white border text-gray-700" id="flt-Caprinos">Caprinos</button>
+          <button onclick="filterAnimals('Equinos')" class="px-3 py-1.5 rounded-lg bg-white border text-gray-700" id="flt-Equinos">Equinos</button>
+          <button onclick="filterAnimals('Avícolas')" class="px-3 py-1.5 rounded-lg bg-white border text-gray-700" id="flt-Avícolas">Avícolas</button>
+          <button onclick="filterAnimals('Piscícolas')" class="px-3 py-1.5 rounded-lg bg-white border text-gray-700" id="flt-Piscícolas">Piscícolas</button>
+        </div>
+
+        <div id="animalsListContainer" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 3. SECCIÓN SANIDAD -->
+      <section id="tab-sanidad" class="space-y-4 hidden">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-bold">Plan de Sanidad y Vacunas</h2>
+          <button onclick="openSanidadModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow">
+            + Nueva Tarea Sanitaria
+          </button>
+        </div>
+        <div id="sanidadListContainer" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 4. SECCIÓN PRODUCCIÓN -->
+      <section id="tab-produccion" class="space-y-4 hidden">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-bold">Registro de Producción</h2>
+          <button onclick="openProduccionModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow">
+            + Registrar Ordeño / Producción
+          </button>
+        </div>
+        <div id="produccionListContainer" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 5. SECCIÓN FINANZAS (Solo Admin) -->
+      <section id="tab-finanzas" class="space-y-4 hidden">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-bold">Finanzas y Gastos</h2>
+          <button onclick="openFinanzaModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow">
+            + Registrar Movimiento
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <div class="card-finca p-3">
+            <span class="text-gray-500">Ingresos Totales</span>
+            <p id="finIngresos" class="text-lg font-bold text-green-700 mt-0.5">US$ 0</p>
+          </div>
+          <div class="card-finca p-3">
+            <span class="text-gray-500">Pago de Empleados</span>
+            <p id="finNomina" class="text-lg font-bold text-red-700 mt-0.5">US$ 0</p>
+          </div>
+          <div class="card-finca p-3">
+            <span class="text-gray-500">Gastos de Comida</span>
+            <p id="finComida" class="text-lg font-bold text-amber-700 mt-0.5">US$ 0</p>
+          </div>
+          <div class="card-finca p-3">
+            <span class="text-gray-500">Gastos de Insumos</span>
+            <p id="finInsumos" class="text-lg font-bold text-orange-700 mt-0.5">US$ 0</p>
+          </div>
+        </div>
+
+        <div id="finanzasListContainer" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 6. SECCIÓN PERSONAL (Solo Admin) -->
+      <section id="tab-personal" class="space-y-4 hidden">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-lg font-bold">Personal y Credenciales</h2>
+            <p class="text-xs text-gray-500">El N° de Credencial es el usuario y clave del empleado</p>
+          </div>
+          <button onclick="openEmpleadoModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow">
+            + Registrar Empleado
+          </button>
+        </div>
+        <div id="empleadosListContainer" class="space-y-3"></div>
+      </section>
+
+    </main>
+
+    <!-- BARRA DE NAVEGACIÓN INFERIOR (Idéntica a Imagen 1) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#f7f9f4] border-t border-[#dce2d5] px-2 py-1.5 flex justify-around items-center max-w-md mx-auto z-40">
+      <button onclick="switchTab('resumen')" id="nav-resumen" class="flex flex-col items-center py-1.5 px-3 rounded-xl text-xs nav-active">
+        <span class="text-base">⊞</span>
+        <span>Resumen</span>
+      </button>
+      <button onclick="switchTab('animales')" id="nav-animales" class="flex flex-col items-center py-1.5 px-3 rounded-xl text-xs text-gray-600">
+        <span class="text-base">☰</span>
+        <span>Animales</span>
+      </button>
+      <button onclick="switchTab('sanidad')" id="nav-sanidad" class="flex flex-col items-center py-1.5 px-3 rounded-xl text-xs text-gray-600">
+        <span class="text-base">✚</span>
+        <span>Sanidad</span>
+      </button>
+      <button onclick="switchTab('produccion')" id="nav-produccion" class="flex flex-col items-center py-1.5 px-3 rounded-xl text-xs text-gray-600">
+        <span class="text-base">💧</span>
+        <span>Producción</span>
+      </button>
+      <button onclick="switchTab('finanzas')" id="nav-finanzas" class="flex flex-col items-center py-1.5 px-3 rounded-xl text-xs text-gray-600">
+        <span class="text-base">💲</span>
+        <span>Finanzas</span>
+      </button>
+      <button onclick="switchTab('personal')" id="nav-personal" class="flex flex-col items-center py-1.5 px-3 rounded-xl text-xs text-gray-600">
+        <span class="text-base">👥</span>
+        <span>Personal</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ================= MODAL: REGISTRAR ANIMAL ================= -->
+  <div id="modalAnimal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Registrar Animal / Lote</h3>
+        <button onclick="closeModal('modalAnimal')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveAnimal(event)" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Especie</label>
+            <select id="aniEspecie" onchange="toggleSpeciesFields()" class="w-full mt-1 p-2.5 border rounded-xl">
+              <option value="Bovinos">Bovinos</option>
+              <option value="Porcinos">Porcinos</option>
+              <option value="Caprinos">Caprinos</option>
+              <option value="Equinos">Equinos</option>
+              <option value="Avícolas">Avícolas (Lote)</option>
+              <option value="Piscícolas">Piscícolas (Lote)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold">Arete / Código / Nombre</label>
+            <input id="aniCodigo" type="text" required placeholder="Ej: Vaca #104" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Raza / Línea</label>
+            <input id="aniRaza" type="text" placeholder="Ej: Gyr / Mestiza" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+          <div id="boxCantidadLote" class="hidden">
+            <label class="font-semibold">Cantidad de Aves/Peces</label>
+            <input id="aniCantidad" type="number" value="1" min="1" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+          <div id="boxSexoIndividual">
+            <label class="font-semibold">Sexo</label>
+            <select id="aniSexo" onchange="toggleFemaleFields()" class="w-full mt-1 p-2.5 border rounded-xl">
+              <option value="Macho">Macho</option>
+              <option value="Hembra">Hembra</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Pregunta obligatoria cuando es Hembra: Gestación o Producción -->
+        <div id="femaleStatusBox" class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 hidden">
+          <p class="font-bold text-amber-900">Estado reproductivo y productivo de la Hembra:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-semibold">¿Está en Gestación?</label>
+              <select id="aniGestacion" class="w-full mt-1 p-2 border rounded-lg bg-white">
+                <option value="No">No</option>
+                <option value="Sí">Sí (Preñada)</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-semibold">¿Está en Producción?</label>
+              <select id="aniProduccion" class="w-full mt-1 p-2 border rounded-lg bg-white">
+                <option value="No">No (Seca)</option>
+                <option value="Sí">Sí (En Producción / Lactando)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Peso (kg)</label>
+            <input id="aniPeso" type="number" step="0.1" placeholder="Ej: 420" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Potrero / Galpón / Estanque</label>
+            <input id="aniUbicacion" type="text" placeholder="Ej: Potrero 3" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Guardar Registro</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: REGISTRAR EMPLEADO (Completo) ================= -->
+  <div id="modalEmpleado" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 max-h-[92vh] overflow-y-auto space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Ficha de Registro de Empleado</h3>
+        <button onclick="closeModal('modalEmpleado')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveEmpleado(event)" class="space-y-3 text-xs">
+        
+        <!-- Foto del empleado -->
+        <div class="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl border">
+          <div class="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center border">
+            <img id="empPreviewFoto" src="" class="w-full h-full object-cover hidden" />
+            <span id="empDefaultAvatar" class="text-2xl">👷</span>
+          </div>
+          <div class="flex-1">
+            <label class="font-bold block mb-1">Fotografía del Empleado</label>
+            <input type="file" accept="image/*" onchange="handleEmployeePhoto(event)" class="text-[11px] w-full" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Nombres y Apellidos *</label>
+            <input id="empNombre" type="text" required placeholder="Ej: Juan Pérez" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Número de Cédula *</label>
+            <input id="empCedula" type="text" required placeholder="Ej: V-18.456.789" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Número de Teléfono *</label>
+            <input id="empTelefono" type="tel" required placeholder="Ej: +58 414-0000000" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Dirección de Ubicación *</label>
+            <input id="empDireccion" type="text" required placeholder="Sector / Comunidad" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold">¿Padece de alguna enfermedad o alergia?</label>
+          <input id="empEnfermedad" type="text" placeholder="Ej: Ninguna / Hipertensión / Alergia a penicilina" class="w-full mt-1 p-2 border rounded-xl" />
+        </div>
+
+        <div class="p-2.5 bg-red-50 border border-red-200 rounded-xl grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold text-red-900">Familiar de Emergencia *</label>
+            <input id="empFamiliarNombre" type="text" required placeholder="Nombre y parentesco" class="w-full mt-1 p-2 border rounded-lg bg-white" />
+          </div>
+          <div>
+            <label class="font-semibold text-red-900">Teléfono de Emergencia *</label>
+            <input id="empFamiliarTel" type="tel" required placeholder="Teléfono familiar" class="w-full mt-1 p-2 border rounded-lg bg-white" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-2">
+            <label class="font-semibold">Fecha de Nacimiento *</label>
+            <input id="empNacimiento" type="date" required onchange="calcAge()" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Edad *</label>
+            <input id="empEdad" type="number" required placeholder="Años" class="w-full mt-1 p-2 border rounded-xl bg-gray-50" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Fecha de Ingreso *</label>
+            <input id="empIngreso" type="date" required class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Puesto en la Finca *</label>
+            <input id="empPuesto" type="text" required placeholder="Ej: Caporal / Ordeñador" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Salario Mensual (US$)</label>
+            <input id="empSalario" type="number" step="0.01" required placeholder="Ej: 250" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div class="p-2 bg-green-50 border border-green-300 rounded-xl">
+            <label class="font-bold text-green-900">N° de Credencial (Usuario/Clave) *</label>
+            <input id="empCredencial" type="text" required placeholder="Ej: 1001" class="w-full mt-1 p-1.5 border rounded-lg bg-white font-mono font-bold text-center" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Guardar Empleado y Activar Credencial</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: SANIDAD ================= -->
+  <div id="modalSanidad" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Nueva Tarea de Sanidad</h3>
+        <button onclick="closeModal('modalSanidad')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveSanidad(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold">Tratamiento / Vacuna / Desparasitación</label>
+          <input id="sanTitulo" type="text" required placeholder="Ej: Vacuna Fiebre Aftosa" class="w-full mt-1 p-2.5 border rounded-xl" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Animal o Lote</label>
+            <input id="sanAnimal" type="text" required placeholder="Ej: Lote Bovinos / Vaca #104" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Fecha Programada</label>
+            <input id="sanFecha" type="date" required class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Guardar Tarea Sanitaria</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: PRODUCCIÓN ================= -->
+  <div id="modalProduccion" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Registrar Producción</h3>
+        <button onclick="closeModal('modalProduccion')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveProduccion(event)" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Tipo de Producción</label>
+            <select id="prodTipo" class="w-full mt-1 p-2.5 border rounded-xl">
+              <option value="Leche (Litros)">Leche (Litros)</option>
+              <option value="Huevos (Unidades)">Huevos (Unidades)</option>
+              <option value="Cosecha Peces (kg)">Cosecha Peces (kg)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold">Cantidad</label>
+            <input id="prodCantidad" type="number" step="0.1" required placeholder="Ej: 85" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Fecha</label>
+            <input id="prodFecha" type="date" required class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Observación / Turno</label>
+            <input id="prodNota" type="text" placeholder="Ej: Ordeño Mañana" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Guardar Producción</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: FINANZAS ================= -->
+  <div id="modalFinanza" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Registrar Movimiento Financiero</h3>
+        <button onclick="closeModal('modalFinanza')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveFinanza(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold">Categoría</label>
+          <select id="finCategoria" class="w-full mt-1 p-2.5 border rounded-xl">
+            <option value="Ingreso">🟢 Ingreso (Venta de leche / ganado / otros)</option>
+            <option value="Pago de empleados">🔴 Gasto: Pago de empleados (Nómina)</option>
+            <option value="Gastos de comida">🟠 Gasto: Gastos de comida (Concentrado / Pasto / Sal)</option>
+            <option value="Gastos de insumos">🟡 Gasto: Gastos de insumos (Medicinas / Herramientas)</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Monto (US$)</label>
+            <input id="finMonto" type="number" step="0.01" required placeholder="Ej: 150.00" class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Fecha</label>
+            <input id="finFecha" type="date" required class="w-full mt-1 p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold">Descripción</label>
+          <input id="finConcepto" type="text" required placeholder="Ej: Compra 10 sacos alimento concentrado" class="w-full mt-1 p-2.5 border rounded-xl" />
+        </div>
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Guardar Movimiento</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: DATOS DE LA FINCA Y LOGO ================= -->
+  <div id="modalFarm" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Datos Oficiales de Finca El Miedo</h3>
+        <button onclick="closeModal('modalFarm')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveFarmInfo(event)" class="space-y-3 text-xs">
+        <div class="p-3 bg-gray-50 rounded-xl border space-y-2">
+          <label class="font-bold block">Logo de Finca El Miedo (Imagen de portada y encabezado)</label>
+          <input type="file" accept="image/*" onchange="handleLogoUpload(event)" class="text-[11px] w-full" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">N° Registro Ganadero</label>
+            <input id="farmRegistro" type="text" placeholder="Ej: RG-2026-9981" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Seña o Marca del Hierro</label>
+            <input id="farmHierro" type="text" placeholder="Ej: Corona y FM" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center">
+            <label class="font-semibold">Ubicación GPS (Coordenadas)</label>
+            <button type="button" onclick="getGPS()" class="text-[11px] text-green-700 font-bold underline">📍 Capturar GPS Actual</button>
+          </div>
+          <input id="farmGPS" type="text" placeholder="Ej: 8.5983, -71.1449" class="w-full mt-1 p-2 border rounded-xl" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-semibold">Teléfonos de Contacto</label>
+            <input id="farmTelefono" type="text" placeholder="Ej: +58 414-0000000" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+          <div>
+            <label class="font-semibold">Correo Electrónico</label>
+            <input id="farmCorreo" type="email" placeholder="fincaelmiedo@gmail.com" class="w-full mt-1 p-2 border rounded-xl" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+          <div>
+            <label class="font-semibold">Usuario Admin</label>
+            <input id="farmAdminUser" type="text" required class="w-full mt-1 p-2 border rounded-lg bg-white" />
+          </div>
+          <div>
+            <label class="font-semibold">Contraseña Admin</label>
+            <input id="farmAdminPass" type="text" required class="w-full mt-1 p-2 border rounded-lg bg-white" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Guardar Datos de la Finca</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: NUBE FIREBASE ================= -->
+  <div id="modalCloud" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3 text-xs">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Sincronización en Tiempo Real (Firebase)</h3>
+        <button onclick="closeModal('modalCloud')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <p class="text-gray-600">Pega aquí el objeto <code>firebaseConfig</code> de tu proyecto de Google Firebase para que tu iPhone, el Android de tu mamá y el de tu empleado se sincronicen al instante:</p>
+      <textarea id="firebaseConfigInput" rows="5" placeholder='{"apiKey": "...", "projectId": "finca-el-miedo", ...}' class="w-full p-2.5 border rounded-xl font-mono text-[11px]"></textarea>
+      <div class="flex gap-2">
+        <button onclick="saveFirebaseConfig()" class="flex-1 py-2.5 bg-[#1b4332] text-white font-bold rounded-xl">Conectar Firebase</button>
+        <button onclick="exportBackup()" class="py-2.5 px-3 bg-gray-200 font-semibold rounded-xl">Descargar Backup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LÓGICA DE LA APLICACIÓN ================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const STORAGE_KEY = "finca_el_miedo_db_v1";
+    let currentFilter = "Todos";
+    let currentUserRole = null; // 'admin' o 'empleado'
+    let currentEmployeeName = "";
+    let tempEmpPhoto = "";
+    let firestoreDb = null;
+
+    // Estado inicial de la base de datos
+    let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+      farm: {
+        logo: "",
+        registro: "",
+        hierro: "",
+        gps: "",
+        telefono: "",
+        correo: "",
+        adminUser: "admin",
+        adminPass: "finca2026"
+      },
+      animales: [],
+      sanidad: [],
+      produccion: [],
+      finanzas: [],
+      empleados: []
+    };
+
+    // Guardar local y en Firebase si está conectado
+    async function persistData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      renderAll();
+      if (firestoreDb) {
+        try {
+          await setDoc(doc(firestoreDb, "finca_el_miedo", "shared_state"), db);
+        } catch (e) {
+          console.error("Error sincronizando con Firebase:", e);
+        }
+      }
+    }
+
+    // Inicializar Firebase si existe configuración guardada
+    function initFirebaseSync() {
+      const rawCfg = localStorage.getItem("finca_firebase_config");
+      if (!rawCfg) return;
+      try {
+        const cfg = JSON.parse(rawCfg);
+        const app = initializeApp(cfg);
+        firestoreDb = getFirestore(app);
+        document.getElementById("cloudStatusDot").textContent = "Firebase Activo";
+        onSnapshot(doc(firestoreDb, "finca_el_miedo", "shared_state"), (snap) => {
+          if (snap.exists()) {
+            db = snap.data();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+            renderAll();
+          }
+        });
+      } catch (e) {
+        console.warn("Configuración Firebase inválida:", e);
+      }
+    }
+
+    // Formatear fecha de encabezado
+    const now = new Date();
+    document.getElementById("currentDateDisplay").textContent = now.toLocaleDateString("es-ES", {
+      weekday: "short", day: "numeric", month: "short", year: "numeric"
+    });
+
+    // LOGIN Y PERMISOS POR ROL
+    window.handleLogin = function(e) {
+      e.preventDefault();
+      const u = document.getElementById("loginUser").value.trim();
+      const p = document.getElementById("loginPass").value.trim();
+
+      // 1. Verificar Administrador
+      if (u === db.farm.adminUser && p === db.farm.adminPass) {
+        currentUserRole = "admin";
+        currentEmployeeName = "Administrador";
+        enterApp();
+        return;
+      }
+
+      // 2. Verificar Empleado por Número de Credencial (Usuario = Credencial y Contraseña = Credencial)
+      const emp = db.empleados.find(item => String(item.credencial).trim() === u && String(item.credencial).trim() === p);
+      if (emp) {
+        currentUserRole = "empleado";
+        currentEmployeeName = emp.nombre;
+        enterApp();
+        return;
+      }
+
+      document.getElementById("loginError").classList.remove("hidden");
+    };
+
+    function enterApp() {
+      document.getElementById("loginError").classList.add("hidden");
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("appContainer").classList.remove("hidden");
+
+      const isEmp = currentUserRole === "empleado";
+      document.getElementById("headerSub").textContent = isEmp
+        ? `EMPLEADO: ${currentEmployeeName}`
+        : "ADMINISTRADOR · ACCESO TOTAL";
+
+      // Bloquear/Ocultar Finanzas, Personal y Configuración a Empleados
+      document.getElementById("nav-finanzas").classList.toggle("hidden", isEmp);
+      document.getElementById("nav-personal").classList.toggle("hidden", isEmp);
+      document.getElementById("cardResumenPersonal").classList.toggle("hidden", isEmp);
+      document.getElementById("cardResumenFinanzas").classList.toggle("hidden", isEmp);
+      document.getElementById("btnFarmConfig").classList.toggle("hidden", isEmp);
+      document.getElementById("btnCloudConfig").classList.toggle("hidden", isEmp);
+
+      switchTab("resumen");
+      renderAll();
+    }
+
+    window.logout = function() {
+      currentUserRole = null;
+      document.getElementById("loginUser").value = "";
+      document.getElementById("loginPass").value = "";
+      document.getElementById("appContainer").classList.add("hidden");
+      document.getElementById("loginScreen").classList.remove("hidden");
+    };
+
+    // NAVEGACIÓN ENTRE PESTAÑAS
+    window.switchTab = function(tab) {
+      if (currentUserRole === "empleado" && (tab === "finanzas" || tab === "personal")) return;
+      ["resumen", "animales", "sanidad", "produccion", "finanzas", "personal"].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== tab);
+        const navBtn = document.getElementById(`nav-${t}`);
+        if (navBtn) {
+          if (t === tab) navBtn.classList.add("nav-active");
+          else navBtn.classList.remove("nav-active");
+        }
+      });
+    };
+
+    window.openSpecies = function(spec) {
+      switchTab("animales");
+      filterAnimals(spec);
+    };
+
+    // MODALES
+    window.closeModal = (id) => document.getElementById(id).classList.add("hidden");
+    window.openAnimalModal = () => {
+      toggleSpeciesFields();
+      document.getElementById("modalAnimal").classList.remove("hidden");
+    };
+    window.openSanidadModal = () => document.getElementById("modalSanidad").classList.remove("hidden");
+    window.openProduccionModal = () => document.getElementById("modalProduccion").classList.remove("hidden");
+    window.openFinanzaModal = () => document.getElementById("modalFinanza").classList.remove("hidden");
+    window.openEmpleadoModal = () => {
+      tempEmpPhoto = "";
+      document.getElementById("empPreviewFoto").classList.add("hidden");
+      document.getElementById("empDefaultAvatar").classList.remove("hidden");
+      document.getElementById("modalEmpleado").classList.remove("hidden");
+    };
+    window.openFarmModal = () => {
+      if (currentUserRole === "empleado") return;
+      document.getElementById("farmRegistro").value = db.farm.registro || "";
+      document.getElementById("farmHierro").value = db.farm.hierro || "";
+      document.getElementById("farmGPS").value = db.farm.gps || "";
+      document.getElementById("farmTelefono").value = db.farm.telefono || "";
+      document.getElementById("farmCorreo").value = db.farm.correo || "";
+      document.getElementById("farmAdminUser").value = db.farm.adminUser || "admin";
+      document.getElementById("farmAdminPass").value = db.farm.adminPass || "finca2026";
+      document.getElementById("modalFarm").classList.remove("hidden");
+    };
+    window.openCloudModal = () => {
+      document.getElementById("firebaseConfigInput").value = localStorage.getItem("finca_firebase_config") || "";
+      document.getElementById("modalCloud").classList.remove("hidden");
+    };
+
+    // CAMPOS DINÁMICOS DE HEMBRA (GESTACIÓN / PRODUCCIÓN) Y LOTES
+    window.toggleSpeciesFields = function() {
+      const esp = document.getElementById("aniEspecie").value;
+      const isLote = esp === "Avícolas" || esp === "Piscícolas";
+      document.getElementById("boxCantidadLote").classList.toggle("hidden", !isLote);
+      toggleFemaleFields();
+    };
+
+    window.toggleFemaleFields = function() {
+      const sexo = document.getElementById("aniSexo").value;
+      document.getElementById("femaleStatusBox").classList.toggle("hidden", sexo !== "Hembra");
+    };
+
+    // GUARDAR ANIMAL
+    window.saveAnimal = function(e) {
+      e.preventDefault();
+      const especie = document.getElementById("aniEspecie").value;
+      const sexo = document.getElementById("aniSexo").value;
+      const isLote = especie === "Avícolas" || especie === "Piscícolas";
+
+      db.animales.unshift({
+        id: Date.now(),
+        especie,
+        codigo: document.getElementById("aniCodigo").value,
+        raza: document.getElementById("aniRaza").value || "General",
+        sexo,
+        cantidad: isLote ? Number(document.getElementById("aniCantidad").value || 1) : 1,
+        gestacion: sexo === "Hembra" ? document.getElementById("aniGestacion").value : "No",
+        produccion: sexo === "Hembra" ? document.getElementById("aniProduccion").value : "No",
+        peso: document.getElementById("aniPeso").value || "—",
+        ubicacion: document.getElementById("aniUbicacion").value || "General"
+      });
+      closeModal("modalAnimal");
+      e.target.reset();
+      persistData();
+    };
+
+    window.deleteAnimal = function(id) {
+      db.animales = db.animales.filter(a => a.id !== id);
+      persistData();
+    };
+
+    window.filterAnimals = function(spec) {
+      currentFilter = spec;
+      ["Todos", "Bovinos", "Porcinos", "Caprinos", "Equinos", "Avícolas", "Piscícolas"].forEach(s => {
+        const btn = document.getElementById(`flt-${s}`);
+        if (btn) {
+          btn.className = s === spec
+            ? "px-3 py-1.5 rounded-lg bg-[#1b4332] text-white font-semibold"
+            : "px-3 py-1.5 rounded-lg bg-white border text-gray-700";
+        }
+      });
+      renderAll();
+    };
+
+    // GUARDAR EMPLEADO Y CREDENCIAL
+    window.calcAge = function() {
+      const val = document.getElementById("empNacimiento").value;
+      if (!val) return;
+      const birth = new Date(val);
+      const ageDifMs = Date.now() - birth.getTime();
+      const ageDate = new Date(ageDifMs);
+      document.getElementById("empEdad").value = Math.abs(ageDate.getUTCFullYear() - 1970);
+    };
+
+    window.handleEmployeePhoto = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        tempEmpPhoto = evt.target.result;
+        const img = document.getElementById("empPreviewFoto");
+        img.src = tempEmpPhoto;
+        img.classList.remove("hidden");
+        document.getElementById("empDefaultAvatar").classList.add("hidden");
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.saveEmpleado = function(e) {
+      e.preventDefault();
+      db.empleados.unshift({
+        id: Date.now(),
+        foto: tempEmpPhoto,
+        nombre: document.getElementById("empNombre").value,
+        cedula: document.getElementById("empCedula").value,
+        telefono: document.getElementById("empTelefono").value,
+        direccion: document.getElementById("empDireccion").value,
+        enfermedad: document.getElementById("empEnfermedad").value || "Ninguna",
+        familiarNombre: document.getElementById("empFamiliarNombre").value,
+        familiarTel: document.getElementById("empFamiliarTel").value,
+        nacimiento: document.getElementById("empNacimiento").value,
+        edad: document.getElementById("empEdad").value,
+        ingreso: document.getElementById("empIngreso").value,
+        puesto: document.getElementById("empPuesto").value,
+        salario: Number(document.getElementById("empSalario").value || 0),
+        credencial: document.getElementById("empCredencial").value.trim(),
+        pagadoEsteMes: false
+      });
+      closeModal("modalEmpleado");
+      e.target.reset();
+      persistData();
+    };
+
+    window.pagarEmpleado = function(id) {
+      const emp = db.empleados.find(e => e.id === id);
+      if (!emp) return;
+      emp.pagadoEsteMes = true;
+      db.finanzas.unshift({
+        id: Date.now(),
+        categoria: "Pago de empleados",
+        monto: Number(emp.salario),
+        fecha: new Date().toISOString().slice(0, 10),
+        concepto: `Pago de nómina: ${emp.nombre} (${emp.puesto})`
+      });
+      persistData();
+    };
+
+    // SANIDAD, PRODUCCIÓN Y FINANZAS
+    window.saveSanidad = function(e) {
+      e.preventDefault();
+      db.sanidad.unshift({
+        id: Date.now(),
+        titulo: document.getElementById("sanTitulo").value,
+        animal: document.getElementById("sanAnimal").value,
+        fecha: document.getElementById("sanFecha").value,
+        completado: false
+      });
+      closeModal("modalSanidad");
+      e.target.reset();
+      persistData();
+    };
+
+    window.toggleSanidad = function(id) {
+      const item = db.sanidad.find(s => s.id === id);
+      if (item) item.completado = !item.completado;
+      persistData();
+    };
+
+    window.saveProduccion = function(e) {
+      e.preventDefault();
+      db.produccion.unshift({
+        id: Date.now(),
+        tipo: document.getElementById("prodTipo").value,
+        cantidad: Number(document.getElementById("prodCantidad").value),
+        fecha: document.getElementById("prodFecha").value,
+        nota: document.getElementById("prodNota").value || "Registro general"
+      });
+      closeModal("modalProduccion");
+      e.target.reset();
+      persistData();
+    };
+
+    window.saveFinanza = function(e) {
+      e.preventDefault();
+      db.finanzas.unshift({
+        id: Date.now(),
+        categoria: document.getElementById("finCategoria").value,
+        monto: Number(document.getElementById("finMonto").value),
+        fecha: document.getElementById("finFecha").value,
+        concepto: document.getElementById("finConcepto").value
+      });
+      closeModal("modalFinanza");
+      e.target.reset();
+      persistData();
+    };
+
+    // DATOS DE LA FINCA Y GPS
+    window.handleLogoUpload = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        db.farm.logo = evt.target.result;
+        persistData();
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.getGPS = function() {
+      if (!navigator.geolocation) {
+        alert("Tu dispositivo no soporta GPS.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(pos => {
+        document.getElementById("farmGPS").value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      }, () => alert("Activa el permiso de ubicación en tu teléfono."));
+    };
+
+    window.saveFarmInfo = function(e) {
+      e.preventDefault();
+      db.farm.registro = document.getElementById("farmRegistro").value;
+      db.farm.hierro = document.getElementById("farmHierro").value;
+      db.farm.gps = document.getElementById("farmGPS").value;
+      db.farm.telefono = document.getElementById("farmTelefono").value;
+      db.farm.correo = document.getElementById("farmCorreo").value;
+      db.farm.adminUser = document.getElementById("farmAdminUser").value.trim();
+      db.farm.adminPass = document.getElementById("farmAdminPass").value.trim();
+      closeModal("modalFarm");
+      persistData();
+    };
+
+    window.saveFirebaseConfig = function() {
+      const raw = document.getElementById("firebaseConfigInput").value.trim();
+      localStorage.setItem("finca_firebase_config", raw);
+      initFirebaseSync();
+      closeModal("modalCloud");
+    };
+
+    window.exportBackup = function() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "respaldo_finca_el_miedo.json";
+      a.click();
+    };
+
+    // RENDERIZAR TODA LA INTERFAZ
+    function renderAll() {
+      // Logos personalizados
+      if (db.farm.logo) {
+        document.getElementById("loginLogoImg").src = db.farm.logo;
+        document.getElementById("loginLogoImg").classList.remove("hidden");
+        document.getElementById("loginDefaultShield").classList.add("hidden");
+        document.getElementById("headerLogoImg").src = db.farm.logo;
+        document.getElementById("headerLogoImg").classList.remove("hidden");
+        document.getElementById("headerDefaultIcon").classList.add("hidden");
+      }
+
+      // Conteos por especie
+      const countSpec = (s) => db.animales.filter(a => a.especie === s);
+      const bov = countSpec("Bovinos");
+      const por = countSpec("Porcinos");
+      const cap = countSpec("Caprinos");
+      const equ = countSpec("Equinos");
+      const avi = countSpec("Avícolas");
+      const pis = countSpec("Piscícolas");
+
+      const totalAves = avi.reduce((acc, x) => acc + Number(x.cantidad || 1), 0);
+      const totalPeces = pis.reduce((acc, x) => acc + Number(x.cantidad || 1), 0);
+      const bovLactando = bov.filter(a => a.produccion === "Sí").length;
+      const bovPrenadas = bov.filter(a => a.gestacion === "Sí").length;
+
+      document.getElementById("resBovinosCount").textContent = bov.length;
+      document.getElementById("resBovinosSub").textContent = `${bovLactando} lactando · ${bovPrenadas} preñadas`;
+
+      document.getElementById("specBovinos").textContent = `${bov.length} cabezas`;
+      document.getElementById("specPorcinos").textContent = `${por.length} cabezas`;
+      document.getElementById("specCaprinos").textContent = `${cap.length} cabezas`;
+      document.getElementById("specEquinos").textContent = `${equ.length} cabezas`;
+      document.getElementById("specAvicolas").textContent = `${avi.length} lotes · ${totalAves} aves`;
+      document.getElementById("specPiscicolas").textContent = `${pis.length} lotes · ${totalPeces} peces`;
+
+      document.getElementById("resAvesPecesCount").textContent = totalAves + totalPeces;
+      document.getElementById("resAvesPecesSub").textContent = `${totalAves} aves · ${totalPeces} peces`;
+
+      // Leche
+      const lecheLogs = db.produccion.filter(p => p.tipo === "Leche (Litros)");
+      const totalLeche = lecheLogs.reduce((acc, p) => acc + Number(p.cantidad), 0);
+      document.getElementById("resLecheCount").innerHTML = lecheLogs.length ? `${totalLeche} <span class="text-base font-normal">L</span>` : `— <span class="text-base font-normal">L</span>`;
+      document.getElementById("resLecheSub").textContent = lecheLogs.length ? `Último: ${lecheLogs[0].cantidad} L (${lecheLogs[0].fecha})` : "Sin ordeños recientes";
+
+      // Sanidad pendiente
+      const sanPend = db.sanidad.filter(s => !s.completado);
+      document.getElementById("resSanidadCount").textContent = sanPend.length;
+      document.getElementById("resSanidadSub").textContent = sanPend.length ? `${sanPend.length} tareas activas` : "Todo al día";
+      document.getElementById("resSanidadList").innerHTML = sanPend.length
+        ? sanPend.slice(0, 4).map(s => `<div class="flex justify-between items-center py-1 border-b last:border-none"><span>💉 <strong>${s.titulo}</strong> (${s.animal})</span><span class="text-amber-700 font-semibold">${s.fecha}</span></div>`).join("")
+        : "No hay tareas de sanidad pendientes.";
+
+      // Personal y Nómina
+      const empPorPagar = db.empleados.filter(e => !e.pagadoEsteMes).length;
+      const nominaTotal = db.empleados.reduce((acc, e) => acc + Number(e.salario || 0), 0);
+      document.getElementById("resPagosPend").textContent = empPorPagar;
+      document.getElementById("resNominaMes").textContent = `Nómina US$ ${nominaTotal} al mes`;
+
+      // Finanzas
+      const sumCat = (c) => db.finanzas.filter(f => f.categoria === c).reduce((a, b) => a + Number(b.monto), 0);
+      const ing = sumCat("Ingreso");
+      const gEmp = sumCat("Pago de empleados");
+      const gCom = sumCat("Gastos de comida");
+      const gIns = sumCat("Gastos de insumos");
+      const gastos = gEmp + gCom + gIns;
+      const balance = ing - gastos;
+
+      document.getElementById("resBalanceMes").textContent = `US$ ${balance}`;
+      document.getElementById("resBalanceSub").textContent = `US$ ${ing} - US$ ${gastos}`;
+      document.getElementById("finIngresos").textContent = `US$ ${ing}`;
+      document.getElementById("finNomina").textContent = `US$ ${gEmp}`;
+      document.getElementById("finComida").textContent = `US$ ${gCom}`;
+      document.getElementById("finInsumos").textContent = `US$ ${gIns}`;
+
+      // Lista de Animales
+      const listAnim = currentFilter === "Todos" ? db.animales : db.animales.filter(a => a.especie === currentFilter);
+      document.getElementById("animalsListContainer").innerHTML = listAnim.length ? listAnim.map(a => `
+        <div class="card-finca p-3.5 flex justify-between items-center">
+          <div>
+            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-green-100 text-green-900">${a.especie}</span>
+            <h4 class="font-bold text-sm mt-1">${a.codigo} <span class="text-xs font-normal text-gray-500">(${a.raza})</span></h4>
+            <p class="text-xs text-gray-600">Sexo: ${a.sexo} · Peso: ${a.peso} kg · Ubic: ${a.ubicacion}</p>
+            ${a.sexo === "Hembra" ? `<p class="text-[11px] font-semibold text-amber-800 mt-0.5">Gestación: ${a.gestacion} | Producción: ${a.produccion}</p>` : ""}
+          </div>
+          <button onclick="deleteAnimal(${a.id})" class="text-xs text-red-500 font-bold px-2">Eliminar</button>
+        </div>
+      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">No hay animales registrados en esta categoría.</div>`;
+
+      // Lista de Sanidad
+      document.getElementById("sanidadListContainer").innerHTML = db.sanidad.length ? db.sanidad.map(s => `
+        <div class="card-finca p-3.5 flex justify-between items-center">
+          <div>
+            <h4 class="font-bold text-sm ${s.completado ? 'line-through text-gray-400' : ''}">${s.titulo}</h4>
+            <p class="text-xs text-gray-600">Animal/Lote: ${s.animal} · Fecha: ${s.fecha}</p>
+          </div>
+          <button onclick="toggleSanidad(${s.id})" class="px-3 py-1.5 rounded-lg text-xs font-bold ${s.completado ? 'bg-gray-200 text-gray-700' : 'bg-green-700 text-white'}">
+            ${s.completado ? "Completado" : "Marcar Listo"}
+          </button>
+        </div>
+      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">Sin registros sanitarios.</div>`;
+
+      // Lista de Producción
+      document.getElementById("produccionListContainer").innerHTML = db.produccion.length ? db.produccion.map(p => `
+        <div class="card-finca p-3.5 flex justify-between items-center">
+          <div>
+            <h4 class="font-bold text-sm">${p.tipo}: ${p.cantidad}</h4>
+            <p class="text-xs text-gray-600">${p.nota} · Fecha: ${p.fecha}</p>
+          </div>
+        </div>
+      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">Sin registros de producción.</div>`;
+
+      // Lista de Finanzas
+      document.getElementById("finanzasListContainer").innerHTML = db.finanzas.length ? db.finanzas.map(f => `
+        <div class="card-finca p-3.5 flex justify-between items-center">
+          <div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${f.categoria === 'Ingreso' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${f.categoria}</span>
+            <h4 class="font-bold text-sm mt-1">${f.concepto}</h4>
+            <p class="text-xs text-gray-500">${f.fecha}</p>
+          </div>
+          <span class="font-bold text-sm ${f.categoria === 'Ingreso' ? 'text-green-700' : 'text-red-700'}">US$ ${f.monto}</span>
+        </div>
+      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">Sin movimientos financieros registrados.</div>`;
+
+      // Lista de Empleados (Expediente completo)
+      document.getElementById("empleadosListContainer").innerHTML = db.empleados.length ? db.empleados.map(emp => `
+        <div class="card-finca p-4 space-y-2">
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center border">
+              ${emp.foto ? `<img src="${emp.foto}" class="w-full h-full object-cover" />` : `<span class="text-xl">👷</span>`}
+            </div>
+            <div class="flex-1">
+              <div class="flex justify-between items-start">
+                <h4 class="font-bold text-sm">${emp.nombre}</h4>
+                <span class="text-[11px] bg-[#1b4332] text-[#f3d778] px-2 py-0.5 rounded font-mono font-bold">Credencial: ${emp.credencial}</span>
+              </div>
+              <p class="text-xs font-semibold text-green-800">${emp.puesto} · Salario: US$ ${emp.salario}/mes</p>
+              <p class="text-[11px] text-gray-600">Cédula: ${emp.cedula} · Edad: ${emp.edad} años (Nac: ${emp.nacimiento})</p>
+            </div>
+          </div>
+          <div class="text-[11px] text-gray-700 bg-white/70 p-2.5 rounded-xl border space-y-1">
+            <p>📞 <strong>Tel:</strong> ${emp.telefono} | 📍 <strong>Dirección:</strong> ${emp.direccion}</p>
+            <p>📅 <strong>Fecha de Ingreso:</strong> ${emp.ingreso}</p>
+            <p class="text-amber-900">🏥 <strong>Enfermedad / Condición:</strong> ${emp.enfermedad}</p>
+            <p class="text-red-800">🚨 <strong>Contacto Emergencia:</strong> ${emp.familiarNombre} (${emp.familiarTel})</p>
+          </div>
+          <div class="flex justify-end">
+            <button onclick="pagarEmpleado(${emp.id})" ${emp.pagadoEsteMes ? 'disabled' : ''} class="px-3 py-1.5 rounded-xl text-xs font-bold ${emp.pagadoEsteMes ? 'bg-gray-200 text-gray-500' : 'bg-[#1b4332] text-white'}">
+              ${emp.pagadoEsteMes ? '✓ Nómina Pagada este mes' : '💸 Registrar Pago de Nómina'}
+            </button>
+          </div>
+        </div>
+      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">No hay empleados registrados todavía.</div>`;
+    }
+
+    initFirebaseSync();
+    renderAll();
+  </script>
+</body>
+</html>
