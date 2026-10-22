@@ -50,7 +50,7 @@
 </head>
 <body>
 
-  <!-- ================= PANTALLA DE LOGIN (SIN CREDENCIALES VISIBLES) ================= -->
+  <!-- ================= PANTALLA DE LOGIN ================= -->
   <div id="loginScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6" style="background: radial-gradient(circle at top, #1f241d 0%, #0c0f0a 100%);">
     <div class="w-full max-w-sm bg-[#151914] border border-[#3a3520] rounded-3xl p-6 shadow-2xl text-center">
       
@@ -121,6 +121,10 @@
 
       <!-- 1. SECCIÓN RESUMEN -->
       <section id="tab-resumen" class="space-y-5">
+        
+        <!-- Alerta de Tareas Asignadas -->
+        <div id="employeeAlertContainer" class="space-y-3"></div>
+
         <div class="grid grid-cols-2 gap-3">
           <div onclick="switchTab('animales')" class="card-finca p-4 cursor-pointer">
             <p class="text-xs text-gray-600">Bovinos</p>
@@ -272,11 +276,16 @@
         <div class="flex justify-between items-center">
           <div>
             <h2 class="text-lg font-bold">Personal y Credenciales</h2>
-            <p class="text-xs text-gray-500">El N° de Credencial es el usuario y clave del empleado</p>
+            <p class="text-xs text-gray-500">Gestión de empleados y tareas asignadas</p>
           </div>
-          <button onclick="openEmpleadoModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow">
-            + Registrar Empleado
-          </button>
+          <div class="flex gap-2">
+            <button onclick="openAdminTaskModal()" class="bg-amber-600 text-white text-xs font-bold px-3 py-2.5 rounded-xl shadow">
+              📋 Asignar Tarea
+            </button>
+            <button onclick="openEmpleadoModal()" class="bg-[#1b4332] text-white text-xs font-bold px-3 py-2.5 rounded-xl shadow">
+              + Empleado
+            </button>
+          </div>
         </div>
         <div id="empleadosListContainer" class="space-y-3"></div>
       </section>
@@ -313,6 +322,32 @@
   </div>
 
   <!-- ================= MODALES ================= -->
+
+  <!-- MODAL ASIGNAR TAREA DIARIA (ADMIN) -->
+  <div id="modalAdminTask" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5 space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-base">Asignar Tarea a Empleado</h3>
+        <button onclick="closeModal('modalAdminTask')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="saveAdminTask(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold">Seleccionar Empleado</label>
+          <select id="taskEmpTarget" required class="w-full mt-1 p-2.5 border rounded-xl bg-white"></select>
+        </div>
+        <div>
+          <label class="font-semibold">Instrucción / Tarea Asignada</label>
+          <textarea id="taskDescription" required rows="3" placeholder="Ej: Limpiar abrevaderos del potrero 3..." class="w-full mt-1 p-2.5 border rounded-xl"></textarea>
+        </div>
+        <div>
+          <label class="font-semibold">Fecha límite / Programada</label>
+          <input id="taskDate" type="date" required class="w-full mt-1 p-2.5 border rounded-xl" />
+        </div>
+        <button type="submit" class="w-full py-3 bg-[#1b4332] text-white font-bold rounded-xl">Enviar Alerta de Tarea</button>
+      </form>
+    </div>
+  </div>
+
   <div id="modalAnimal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto space-y-3">
       <div class="flex justify-between items-center border-b pb-2">
@@ -662,6 +697,7 @@
     let currentFilter = "Todos";
     let currentUserRole = null;
     let currentEmployeeName = "";
+    let currentEmployeeCredencial = "";
     let tempEmpPhoto = "";
 
     let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
@@ -679,7 +715,8 @@
       sanidad: [],
       produccion: [],
       finanzas: [],
-      empleados: []
+      empleados: [],
+      tareasPersonal: []
     };
 
     async function persistData() {
@@ -695,6 +732,7 @@
     onSnapshot(doc(firestoreDb, "finca_el_miedo", "shared_state"), (snap) => {
       if (snap.exists()) {
         db = snap.data();
+        if (!db.tareasPersonal) db.tareasPersonal = [];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
         renderAll();
       }
@@ -713,6 +751,7 @@
       if (u === db.farm.adminUser && p === db.farm.adminPass) {
         currentUserRole = "admin";
         currentEmployeeName = "Administrador";
+        currentEmployeeCredencial = "admin";
         enterApp();
         return;
       }
@@ -721,6 +760,7 @@
       if (emp) {
         currentUserRole = "empleado";
         currentEmployeeName = emp.nombre;
+        currentEmployeeCredencial = emp.credencial;
         enterApp();
         return;
       }
@@ -750,6 +790,8 @@
 
     window.logout = function() {
       currentUserRole = null;
+      currentEmployeeName = "";
+      currentEmployeeCredencial = "";
       document.getElementById("loginUser").value = "";
       document.getElementById("loginPass").value = "";
       document.getElementById("appContainer").classList.add("hidden");
@@ -759,8 +801,7 @@
     window.switchTab = function(tab) {
       if (currentUserRole === "empleado" && (tab === "finanzas" || tab === "personal")) return;
       ["resumen", "animales", "sanidad", "produccion", "finanzas", "personal"].forEach(t => {
-        document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== tab);
-        const navBtn = document.getElementById(`nav-${t}`);
+        document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== tab); const navBtn = document.getElementById(`nav-${t}`);
         if (navBtn) {
           if (t === tab) navBtn.classList.add("nav-active");
           else navBtn.classList.remove("nav-active");
@@ -778,68 +819,49 @@
     window.openSanidadModal = () => document.getElementById("modalSanidad").classList.remove("hidden");
     window.openProduccionModal = () => document.getElementById("modalProduccion").classList.remove("hidden");
     window.openFinanzaModal = () => document.getElementById("modalFinanza").classList.remove("hidden");
-    window.openEmpleadoModal = () => {
-      tempEmpPhoto = "";
-      document.getElementById("empPreviewFoto").classList.add("hidden");
-      document.getElementById("empDefaultAvatar").classList.remove("hidden");
-      document.getElementById("modalEmpleado").classList.remove("hidden");
-    };
-    window.openFarmModal = () => {
-      if (currentUserRole === "empleado") return;
-      document.getElementById("farmRegistro").value = db.farm.registro || "";
-      document.getElementById("farmHierro").value = db.farm.hierro || "";
-      document.getElementById("farmGPS").value = db.farm.gps || "";
-      document.getElementById("farmTelefono").value = db.farm.telefono || "";
-      document.getElementById("farmCorreo").value = db.farm.correo || "";
-      document.getElementById("farmAdminUser").value = db.farm.adminUser || "admin";
-      document.getElementById("farmAdminPass").value = db.farm.adminPass || "finca2026";
-      document.getElementById("modalFarm").classList.remove("hidden");
+    
+    window.openAdminTaskModal = function() {
+      const select = document.getElementById("taskEmpTarget");
+      select.innerHTML = db.empleados.length 
+        ? db.empleados.map(e => `<option value="${e.credencial}">${e.nombre} (Cred:${e.credencial})</option>`).join("")
+        : `<option value="">No hay empleados registrados</option>`;
+      document.getElementById("modalAdminTask").classList.remove("hidden");
     };
 
-    window.toggleSpeciesFields = function() {
-      const esp = document.getElementById("aniEspecie").value;
-      const isLote = esp === "Avícolas" || esp === "Piscícolas";
-      document.getElementById("boxCantidadLote").classList.toggle("hidden", !isLote);
-      toggleFemaleFields();
-    };
-
-    window.toggleFemaleFields = function() {
-      const sexo = document.getElementById("aniSexo").value;
-      document.getElementById("femaleStatusBox").classList.toggle("hidden", sexo !== "Hembra");
-    };
-
-    window.saveAnimal = function(e) {
+    window.saveAdminTask = function(e) {
       e.preventDefault();
-      const especie = document.getElementById("aniEspecie").value;
-      const sexo = document.getElementById("aniSexo").value;
-      const isLote = especie === "Avícolas" || especie === "Piscícolas";
-
-      db.animales.unshift({
+      const credencialEmp = document.getElementById("taskEmpTarget").value;
+      if (!credencialEmp) {
+        alert("Debe registrar y seleccionar un empleado.");
+        return;
+      }
+      db.tareasPersonal.unshift({
         id: Date.now(),
-        especie,
-        codigo: document.getElementById("aniCodigo").value,
-        raza: document.getElementById("aniRaza").value || "General",
-        sexo,
-        cantidad: isLote ? Number(document.getElementById("aniCantidad").value || 1) : 1,
-        gestacion: sexo === "Hembra" ? document.getElementById("aniGestacion").value : "No",
-        produccion: sexo === "Hembra" ? document.getElementById("aniProduccion").value : "No",
-        peso: document.getElementById("aniPeso").value || "—",
-        ubicacion: document.getElementById("aniUbicacion").value || "General"
+        credencial: credencialEmp,
+        descripcion: document.getElementById("taskDescription").value,
+        fecha: document.getElementById("taskDate").value,
+        finalizado: "No",
+        reporte: "",
+        fotos: [],
+        video: ""
       });
-      closeModal("modalAnimal");
+      closeModal("modalAdminTask");
       e.target.reset();
       persistData();
+      alert("¡Tarea asignada con éxito al empleado!");
     };
 
-    window.deleteAnimal = function(id) {
-      db.animales = db.animales.filter(a => a.id !== id);
-      persistData();
+    window.actualizarRespuestaTarea = function(id, estado) {
+      const tarea = db.tareasPersonal.find(t => t.id === id);
+      if (tarea) {
+        tarea.finalizado = estado;
+        persistData();
+      }
     };
 
-    window.filterAnimals = function(spec) {
-      currentFilter = spec;
-      ["Todos", "Bovinos", "Porcinos", "Caprinos", "Equinos", "Avícolas", "Piscícolas"].forEach(s => {
-        const btn = document.getElementById(`flt-${s}`);
+    window.guardarReporteTarea = async function(id) {
+      const inputTxt = document.getElementById(`reporte-txt-${id}`);
+      const inputArchivos = document.getElementById(`reporte-files-${id}`); const tarea = db.tareasPersonal.find(t => t.id === id);  if (!tarea) return;  if (inputTxt) tarea.reporte = inputTxt.value;  if (inputArchivos && inputArchivos.files.length > 0) { const files = Array.from(inputArchivos.files);  // Verificar límite de 5 fotos const fotosFiles = files.filter(f => f.type.startsWith('image/')); const videoFiles = files.filter(f => f.type.startsWith('video/'));  if (fotosFiles.length > 5) { alert("Máximo permitido: 5 fotos."); return; }  if (videoFiles.length > 1) { alert("Solo se permite 1 video."); return; }  // Convertir archivos a Base64 para guardarlos en Firestore const convertToBase64 = (file) => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error); reader.readAsDataURL(file); }); };  for (let img of fotosFiles) { const base64Img = await convertToBase64(img); if (!tarea.fotos) tarea.fotos = []; if (tarea.fotos.length < 5) tarea.fotos.push(base64Img); }  for (let vid of videoFiles) { // Nota: Verificar duración del video (máx 3 minutos) const videoElement = document.createElement('video'); videoElement.preload = 'metadata'; videoElement.src = URL.createObjectURL(vid);  await new Promise((resolve) => { videoElement.onloadedmetadata = function() { window.URL.revokeObjectURL(videoElement.src); if (videoElement.duration > 180) { alert("El video excede los 3 minutos permitidos."); resolve(false); } else { resolve(true); } } });  const base64Vid = await convertToBase64(vid); tarea.video = base64Vid; } }  persistData(); alert("¡Reporte, fotos y video enviados con éxito al administrador!"); };  window.eliminarTareaAdmin = function(id) { db.tareasPersonal = db.tareasPersonal.filter(t => t.id !== id); persistData(); };  window.openEmpleadoModal = () => { tempEmpPhoto = ""; document.getElementById("empPreviewFoto").classList.add("hidden"); document.getElementById("empDefaultAvatar").classList.remove("hidden"); document.getElementById("modalEmpleado").classList.remove("hidden"); };  window.openFarmModal = () => { if (currentUserRole === "empleado") return; document.getElementById("farmRegistro").value = db.farm.registro \vert{}\vert{} ""; document.getElementById("farmHierro").value = db.farm.hierro \vert{}\vert{} ""; document.getElementById("farmGPS").value = db.farm.gps \vert{}\vert{} ""; document.getElementById("farmTelefono").value = db.farm.telefono \vert{}\vert{} ""; document.getElementById("farmCorreo").value = db.farm.correo \vert{}\vert{} ""; document.getElementById("farmAdminUser").value = db.farm.adminUser \vert{}\vert{} "admin"; document.getElementById("farmAdminPass").value = db.farm.adminPass \vert{}\vert{} "finca2026"; document.getElementById("modalFarm").classList.remove("hidden"); };  window.toggleSpeciesFields = function() { const esp = document.getElementById("aniEspecie").value; const isLote = esp === "Avícolas" \vert{}\vert{} esp === "Piscícolas"; document.getElementById("boxCantidadLote").classList.toggle("hidden", !isLote); toggleFemaleFields(); };  window.toggleFemaleFields = function() { const sexo = document.getElementById("aniSexo").value; document.getElementById("femaleStatusBox").classList.toggle("hidden", sexo !== "Hembra"); };  window.saveAnimal = function(e) { e.preventDefault(); const especie = document.getElementById("aniEspecie").value; const sexo = document.getElementById("aniSexo").value; const isLote = especie === "Avícolas" \vert{}\vert{} especie === "Piscícolas";  db.animales.unshift({ id: Date.now(), especie, codigo: document.getElementById("aniCodigo").value, raza: document.getElementById("aniRaza").value \vert{}\vert{} "General", sexo, cantidad: isLote ? Number(document.getElementById("aniCantidad").value \vert{}\vert{} 1) : 1, gestacion: sexo === "Hembra" ? document.getElementById("aniGestacion").value : "No", produccion: sexo === "Hembra" ? document.getElementById("aniProduccion").value : "No", peso: document.getElementById("aniPeso").value \vert{}\vert{} "—", ubicacion: document.getElementById("aniUbicacion").value \vert{}\vert{} "General" }); closeModal("modalAnimal"); e.target.reset(); persistData(); };  window.deleteAnimal = function(id) { db.animales = db.animales.filter(a => a.id !== id); persistData(); };  window.filterAnimals = function(spec) { currentFilter = spec; ["Todos", "Bovinos", "Porcinos", "Caprinos", "Equinos", "Avícolas", "Piscícolas"].forEach(s => { const btn = document.getElementById(`flt-${s}`);
         if (btn) {
           btn.className = s === spec
             ? "px-3 py-1.5 rounded-lg bg-[#1b4332] text-white font-semibold"
@@ -976,7 +998,7 @@
         return;
       }
       navigator.geolocation.getCurrentPosition(pos => {
-        document.getElementById("farmGPS").value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+        document.getElementById("farmGPS").value = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
       }, () => alert("Activa el permiso de ubicación en tu teléfono."));
     };
 
@@ -994,6 +1016,8 @@
     };
 
     function renderAll() {
+      if (!db.tareasPersonal) db.tareasPersonal = [];
+
       if (db.farm.logo) {
         document.getElementById("loginLogoImg").src = db.farm.logo;
         document.getElementById("loginLogoImg").classList.remove("hidden");
@@ -1003,140 +1027,83 @@
         document.getElementById("headerDefaultIcon").classList.add("hidden");
       }
 
-      const countSpec = (s) => db.animales.filter(a => a.especie === s);
-      const bov = countSpec("Bovinos");
-      const por = countSpec("Porcinos");
-      const cap = countSpec("Caprinos");
-      const equ = countSpec("Equinos");
-      const avi = countSpec("Avícolas");
-      const pis = countSpec("Piscícolas");
-
-      const totalAves = avi.reduce((acc, x) => acc + Number(x.cantidad || 1), 0);
-      const totalPeces = pis.reduce((acc, x) => acc + Number(x.cantidad || 1), 0);
-      const bovLactando = bov.filter(a => a.produccion === "Sí").length;
-      const bovPrenadas = bov.filter(a => a.gestacion === "Sí").length;
-
-      document.getElementById("resBovinosCount").textContent = bov.length;
-      document.getElementById("resBovinosSub").textContent = `${bovLactando} lactando · ${bovPrenadas} preñadas`;
-
-      document.getElementById("specBovinos").textContent = `${bov.length} cabezas`;
-      document.getElementById("specPorcinos").textContent = `${por.length} cabezas`;
-      document.getElementById("specCaprinos").textContent = `${cap.length} cabezas`;
-      document.getElementById("specEquinos").textContent = `${equ.length} cabezas`;
-      document.getElementById("specAvicolas").textContent = `${avi.length} lotes · ${totalAves} aves`;
-      document.getElementById("specPiscicolas").textContent = `${pis.length} lotes · ${totalPeces} peces`;
-
-      document.getElementById("resAvesPecesCount").textContent = totalAves + totalPeces;
-      document.getElementById("resAvesPecesSub").textContent = `${totalAves} aves · ${totalPeces} peces`;
-
-      const lecheLogs = db.produccion.filter(p => p.tipo === "Leche (Litros)");
-      const totalLeche = lecheLogs.reduce((acc, p) => acc + Number(p.cantidad), 0);
-      document.getElementById("resLecheCount").innerHTML = lecheLogs.length ? `${totalLeche} <span class="text-base font-normal">L</span>` : `— <span class="text-base font-normal">L</span>`;
-      document.getElementById("resLecheSub").textContent = lecheLogs.length ? `Último: ${lecheLogs[0].cantidad} L (${lecheLogs[0].fecha})` : "Sin ordeños recientes";
-
-      const sanPend = db.sanidad.filter(s => !s.completado);
-      document.getElementById("resSanidadCount").textContent = sanPend.length;
-      document.getElementById("resSanidadSub").textContent = sanPend.length ? `${sanPend.length} tareas activas` : "Todo al día";
-      document.getElementById("resSanidadList").innerHTML = sanPend.length
-        ? sanPend.slice(0, 4).map(s => `<div class="flex justify-between items-center py-1 border-b last:border-none"><span>💉 <strong>${s.titulo}</strong> (${s.animal})</span><span class="text-amber-700 font-semibold">${s.fecha}</span></div>`).join("")
-        : "No hay tareas de sanidad pendientes.";
-
-      const empPorPagar = db.empleados.filter(e => !e.pagadoEsteMes).length;
-      const nominaTotal = db.empleados.reduce((acc, e) => acc + Number(e.salario || 0), 0);
-      document.getElementById("resPagosPend").textContent = empPorPagar;
-      document.getElementById("resNominaMes").textContent = `Nómina US$ ${nominaTotal} al mes`;
-
-      const sumCat = (c) => db.finanzas.filter(f => f.categoria === c).reduce((a, b) => a + Number(b.monto), 0);
-      const ing = sumCat("Ingreso");
-      const gEmp = sumCat("Pago de empleados");
-      const gCom = sumCat("Gastos de comida");
-      const gIns = sumCat("Gastos de insumos");
-      const gastos = gEmp + gCom + gIns;
-      const balance = ing - gastos;
-
-      document.getElementById("resBalanceMes").textContent = `US$ ${balance}`;
-      document.getElementById("resBalanceSub").textContent = `US$ ${ing} - US$ ${gastos}`;
-      document.getElementById("finIngresos").textContent = `US$ ${ing}`;
-      document.getElementById("finNomina").textContent = `US$ ${gEmp}`;
-      document.getElementById("finComida").textContent = `US$ ${gCom}`;
-      document.getElementById("finInsumos").textContent = `US$ ${gIns}`;
-
-      const listAnim = currentFilter === "Todos" ? db.animales : db.animales.filter(a => a.especie === currentFilter);
-      document.getElementById("animalsListContainer").innerHTML = listAnim.length ? listAnim.map(a => `
-        <div class="card-finca p-3.5 flex justify-between items-center">
-          <div>
-            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-green-100 text-green-900">${a.especie}</span>
-            <h4 class="font-bold text-sm mt-1">${a.codigo} <span class="text-xs font-normal text-gray-500">(${a.raza})</span></h4>
-            <p class="text-xs text-gray-600">Sexo: ${a.sexo} · Peso: ${a.peso} kg · Ubic: ${a.ubicacion}</p>
-            ${a.sexo === "Hembra" ? `<p class="text-[11px] font-semibold text-amber-800 mt-0.5">Gestación: ${a.gestacion} | Producción: ${a.produccion}</p>` : ""}
-          </div>
-          <button onclick="deleteAnimal(${a.id})" class="text-xs text-red-500 font-bold px-2">Eliminar</button>
-        </div>
-      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">No hay animales registrados en esta categoría.</div>`;
-
-      document.getElementById("sanidadListContainer").innerHTML = db.sanidad.length ? db.sanidad.map(s => `
-        <div class="card-finca p-3.5 flex justify-between items-center">
-          <div>
-            <h4 class="font-bold text-sm ${s.completado ? 'line-through text-gray-400' : ''}">${s.titulo}</h4>
-            <p class="text-xs text-gray-600">Animal/Lote: ${s.animal} · Fecha: ${s.fecha}</p>
-          </div>
-          <button onclick="toggleSanidad(${s.id})" class="px-3 py-1.5 rounded-lg text-xs font-bold ${s.completado ? 'bg-gray-200 text-gray-700' : 'bg-green-700 text-white'}">
-            ${s.completado ? "Completado" : "Marcar Listo"}
-          </button>
-        </div>
-      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">Sin registros sanitarios.</div>`;
-
-      document.getElementById("produccionListContainer").innerHTML = db.produccion.length ? db.produccion.map(p => `
-        <div class="card-finca p-3.5 flex justify-between items-center">
-          <div>
-            <h4 class="font-bold text-sm">${p.tipo}: ${p.cantidad}</h4>
-            <p class="text-xs text-gray-600">${p.nota} · Fecha: ${p.fecha}</p>
-          </div>
-        </div>
-      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">Sin registros de producción.</div>`;
-
-      document.getElementById("finanzasListContainer").innerHTML = db.finanzas.length ? db.finanzas.map(f => `
-        <div class="card-finca p-3.5 flex justify-between items-center">
-          <div>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${f.categoria === 'Ingreso' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${f.categoria}</span>
-            <h4 class="font-bold text-sm mt-1">${f.concepto}</h4>
-            <p class="text-xs text-gray-500">${f.fecha}</p>
-          </div>
-          <span class="font-bold text-sm ${f.categoria === 'Ingreso' ? 'text-green-700' : 'text-red-700'}">US$ ${f.monto}</span>
-        </div>
-      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">Sin movimientos financieros registrados.</div>`;
-
-      document.getElementById("empleadosListContainer").innerHTML = db.empleados.length ? db.empleados.map(emp => `
-        <div class="card-finca p-4 space-y-2">
-          <div class="flex items-center gap-3">
-            <div class="w-14 h-14 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center border">
-              ${emp.foto ? `<img src="${emp.foto}" class="w-full h-full object-cover" />` : `<span class="text-xl">👷</span>`}
+      // RENDERIZAR ALERTAS DE TAREAS
+      const alertContainer = document.getElementById("employeeAlertContainer");
+      if (currentUserRole === "empleado") {
+        const misTareas = db.tareasPersonal.filter(t => t.credencial === currentEmployeeCredencial);
+        alertContainer.innerHTML = misTareas.length ? `
+          <div class="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 space-y-3 shadow-md">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🔔</span>
+              <h3 class="font-bold text-amber-900 text-sm">Tareas y Alertas Asignadas (${misTareas.length})</h3>
             </div>
-            <div class="flex-1">
-              <div class="flex justify-between items-start">
-                <h4 class="font-bold text-sm">${emp.nombre}</h4>
-                <span class="text-[11px] bg-[#1b4332] text-[#f3d778] px-2 py-0.5 rounded font-mono font-bold">Credencial: ${emp.credencial}</span>
-              </div>
-              <p class="text-xs font-semibold text-green-800">${emp.puesto} · Salario: US$ ${emp.salario}/mes</p>
-              <p class="text-[11px] text-gray-600">Cédula: ${emp.cedula} · Edad: ${emp.edad} años</p>
+            <div class="space-y-3">
+              ${misTareas.map(t => `
+                <div class="bg-white p-3.5 rounded-xl border border-amber-200 space-y-2 text-xs">
+                  <div class="flex justify-between items-start">
+                    <p class="font-semibold text-gray-800 text-sm">${t.descripcion}</p>
+                    <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-600">Fecha: ${t.fecha}</span>
+                  </div>
+                  <div class="flex items-center justify-between pt-1 border-t">
+                    <span class="font-bold text-gray-700">¿Finalizó la tarea?</span>
+                    <div class="flex gap-1.5">
+                      <button onclick="actualizarRespuestaTarea(${t.id}, 'No')" class="px-2.5 py-1 rounded-lg font-bold ${t.finalizado === 'No' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700'}">No</button>
+                      <button onclick="actualizarRespuestaTarea(${t.id}, 'Sí')" class="px-2.5 py-1 rounded-lg font-bold ${t.finalizado === 'Sí' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}">Sí</button>
+                    </div>
+                  </div>
+                  <div class="space-y-1.5 pt-1">
+                    <label class="font-semibold text-gray-700 block">¿Qué hizo / Reporte del trabajo?</label>
+                    <input id="reporte-txt-${t.id}" type="text" value="${t.reporte || ''}" placeholder="Ej: Se limpió el área y se reparó..." class="w-full p-2 border rounded-lg text-xs" />
+                  </div>
+                  <div class="space-y-1 pt-1">
+                    <label class="font-semibold text-gray-700 block">Adjuntar evidencias (Máx 5 fotos o 1 video de máx 3 min):</label>
+                    <input id="reporte-files-${t.id}" type="file" accept="image/*,video/*" multiple class="text-[11px] w-full" />
+                  </div>
+                  <button onclick="guardarReporteTarea(${t.id})" class="w-full mt-2 py-2 bg-[#1b4332] text-white font-bold rounded-lg shadow">Enviar Reporte y Evidencias</button>
+                </div>
+              `).join("")}
             </div>
           </div>
-          <div class="text-[11px] text-gray-700 bg-white/70 p-2.5 rounded-xl border space-y-1">
-            <p>📞 <strong>Tel:</strong> ${emp.telefono} | 📍 <strong>Dirección:</strong> ${emp.direccion}</p>
-            <p>📅 <strong>Fecha de Ingreso:</strong> ${emp.ingreso}</p>
-            <p class="text-amber-900">🏥 <strong>Enfermedad:</strong> ${emp.enfermedad}</p>
-            <p class="text-red-800">🚨 <strong>Emergencia:</strong> ${emp.familiarNombre} (${emp.familiarTel})</p>
-          </div>
-          <div class="flex justify-end">
-            <button onclick="pagarEmpleado(${emp.id})" ${emp.pagadoEsteMes ? 'disabled' : ''} class="px-3 py-1.5 rounded-xl text-xs font-bold ${emp.pagadoEsteMes ? 'bg-gray-200 text-gray-500' : 'bg-[#1b4332] text-white'}">
-              ${emp.pagadoEsteMes ? '✓ Nómina Pagada este mes' : '💸 Registrar Pago de Nómina'}
-            </button>
-          </div>
-        </div>
-      `).join("") : `<div class="card-finca p-6 text-center text-xs text-gray-500">No hay empleados registrados todavía.</div>`;
-    }
+        ` : `<div class="card-finca p-4 text-center text-xs text-gray-500">🔔 No tienes tareas pendientes asignadas para hoy.</div>`;
+      } else {
+        // Vista Administrador: Monitoreo de tareas con fotos y videos adjuntos
+        alertContainer.innerHTML = db.tareasPersonal.length ? `
+          <div class="card-finca p-4 space-y-3">
+            <h3 class="font-bold text-sm text-gray-800 flex items-center justify-between">
+              <span>📋 Monitoreo de Tareas del Personal</span>
+              <button onclick="openAdminTaskModal()" class="text-xs bg-[#1b4332] text-white px-2.5 py-1 rounded-lg">+ Asignar</button>
+            </h3>
+            <div class="space-y-3 max-h-72 overflow-y-auto">
+              ${db.tareasPersonal.map(t => {
+                const emp = db.empleados.find(e => e.credencial === t.credencial);
+                const nombreEmp = emp ? emp.nombre : `Credencial: ${t.credencial}`;
+                return `
+                  <div class="p-3 bg-white rounded-xl border text-xs space-y-2">
+                    <div class="flex justify-between font-bold">
+                      <span class="text-[#1b4332]">👤 ${nombreEmp}</span>
+                      <span class="${t.finalizado === 'Sí' ? 'text-green-700' : 'text-red-600'}">Finalizado: ${t.finalizado}</span>
+                    </div>
+                    <p class="text-gray-700"><strong>Tarea:</strong> ${t.descripcion}</p>
+                    <p class="text-gray-600 italic"><strong>Reporte:</strong> ${t.reporte || 'Sin reporte aún'}</p>
+                    
+                    ${t.fotos && t.fotos.length ? `
+                      <div>
+                        <span class="font-semibold text-gray-600">Fotos de evidencia (${t.fotos.length}):</span>
+                        <div class="flex gap-1.5 overflow-x-auto mt-1">
+                          ${t.fotos.map(f => `<img src="${f}" class="w-16 h-16 object-cover rounded-lg border" />`).join("")}
+                        </div>
+                      </div>
+                    ` : ""}
 
-    renderAll();
-  </script>
-</body>
-</html>
+                    ${t.video ? `
+                      <div>
+                        <span class="font-semibold text-gray-600">Video de evidencia:</span>
+                        <video controls class="w-full h-32 rounded-lg mt-1 bg-black" src="${t.video}"></video>
+                      </div>
+                    ` : ""}
+
+                    <div class="flex justify-end pt-1 border-t">
+                      <button onclick="eliminarTareaAdmin(${t.id})" class="text-[11px] text-red-500 font-bold underline">Eliminar Tarea</button>
+                    </div>
+                  </div>
+                `;
